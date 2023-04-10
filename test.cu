@@ -195,6 +195,8 @@ void expansioAndSortingKernel(int* order, int* counting, int* operations,
     int* B_ptr, int* B_ind, float* B_val, int B_row, int B_col, int B_nnz,
     int* resulting_row, int* resulting_col, float* resulting_val) {
 
+    __shared__ int resulting_index;
+
     int bid = blockIdx.x;
     if (bid < A_row)
     {
@@ -215,10 +217,12 @@ void expansioAndSortingKernel(int* order, int* counting, int* operations,
             {
                 int   b_c = B_ind[b_offset + i];
                 float b_v = B_val[b_offset + i];
+                //printf("a_r = %d, a_c = %d, b_r = %d, b_c = %d, a_v = %6.2f, b_v = %6.2f, a_v * b_v: %.2f \r\n", a_r, a_c, b_r, b_c, a_v, b_v, a_v * b_v);
+                int iIndex = atomicAdd(&resulting_index, 1);
+                resulting_row[operations[bid] + iIndex] = a_r;
+                resulting_col[operations[bid] + iIndex] = b_c;
+                resulting_val[operations[bid] + iIndex] = a_v * b_v;
                 printf("a_r = %d, a_c = %d, b_r = %d, b_c = %d, a_v = %6.2f, b_v = %6.2f, a_v * b_v: %.2f \r\n", a_r, a_c, b_r, b_c, a_v, b_v, a_v * b_v);
-                resulting_row[operations[order[a_r]] + i] = a_r;
-                resulting_col[operations[order[a_r]] + i] = b_c;
-                resulting_val[operations[order[a_r]] + i] = a_v * b_v;
             }
         }
     }
@@ -328,12 +332,13 @@ void expansioAndSortingKernel(int* order, int* counting, int* operations,
 
 int main() {
     // got the matrix A and B
-    int A_row = 7;
-    int A_col = 7;
-    int B_row = 7;
-    int B_col = 7;
-    int present_row = 7;
-    int present_col = 7;
+    int size = 9;
+    int A_row = size;
+    int A_col = size;
+    int B_row = size;
+    int B_col = size;
+    int present_row = size;
+    int present_col = size;
     float *A;
     float *B;
     int A_nnz = generateASparseMatrixRandomly(A_row, A_col, &A);
